@@ -184,10 +184,7 @@ fn check_is_status_line (line : String) -> bool {
 
 #[allow(dead_code)]
 fn hex_string_to_int(hex_string: &str) -> Option<u64> {
-    match u64::from_str_radix(hex_string, 16) {
-        Ok(parsed_int) => Some(parsed_int),
-        Err(_) => None,
-    }
+    u64::from_str_radix(hex_string, 16).ok()
 }
 
 pub async fn header_parser<R>(buf_reader: &mut BufReader<R>) -> CIHashMap<String>

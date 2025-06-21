@@ -1,4 +1,4 @@
-use std::io::{Cursor, Error, ErrorKind};
+use std::io::{Cursor, Error};
 use std::sync::Arc;
 
 use ab_glyph::{FontRef, PxScale};
@@ -60,7 +60,7 @@ pub async fn record_result (request : &Request, database : &mut Arc<Mutex<dyn Da
             Ok(uuid)
         }
         Err(e) => {
-            Err(Error::new(ErrorKind::Other,e))
+            Err(Error::other(e))
         }
     }
 }

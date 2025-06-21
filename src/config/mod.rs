@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::io::{Error, ErrorKind};
+use std::io::Error;
 use std::path::Path;
 use std::sync::OnceLock;
 
@@ -121,7 +121,7 @@ pub fn init_configs (cmd : Cmd) -> std::io::Result<()> {
                     Ok(())
                 }
                 Err(e) => {
-                    Err(Error::new(ErrorKind::Other,e))
+                    Err(Error::other(e))
                 }
             }
         }
@@ -157,12 +157,12 @@ fn open_config_file(path : &str) -> std::io::Result<ServerConfig> {
                     Ok(config)
                 }
                 Err(e) => {
-                    Err(Error::new(ErrorKind::Other,e))
+                    Err(Error::other(e))
                 }
             }
         }
         Err(e) => {
-            Err(Error::new(ErrorKind::Other,e))
+            Err(Error::other(e))
         }
     }
 }

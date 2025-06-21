@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{Error, ErrorKind};
+use std::io::Error;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use serde_json::Value;
@@ -17,6 +17,7 @@ pub struct HttpClient {
     pub stream : ClientStream
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub enum ClientStream {
     Tcp(TcpStream),
@@ -152,7 +153,7 @@ impl HttpClient {
             let port = if scheme == "https" { 443 } else { 80 };
             Ok((scheme.to_string(),host.to_string(),port,path.to_string()))
         } else {
-            Err(Error::new(ErrorKind::Other,"Error parsing input url"))
+            Err(Error::other("Error parsing input url"))
         }
     }
 
