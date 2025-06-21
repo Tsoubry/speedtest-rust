@@ -12,5 +12,5 @@ COPY --from=builder \
 	librespeed-rs
 COPY configs.toml configs.toml
 COPY assets assets
-EXPOSE 443
+EXPOSE 8443
 CMD ["librespeed-rs"]
