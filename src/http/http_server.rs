@@ -25,8 +25,8 @@ impl HttpServer {
     pub async fn init () -> std::io::Result<Self> {
         let config = SERVER_CONFIG.get().unwrap();
         let tcp_socket = TcpSocket::make_listener(config)?;
-        info!("Server started on {}",tcp_socket.to_string());
-        info!("Server base url : {}/",config.base_url);
+        info!("Server started on {tcp_socket}");
+        info!("Server base url : {}/", config.base_url);
         let mut tls_acceptor = None;
         if config.enable_tls {
             tls_acceptor = Some(setup_tls_acceptor(&config.tls_cert_file,&config.tls_key_file)?);
@@ -72,7 +72,7 @@ impl HttpServer {
 
                                 }
                                 Err(e) => {
-                                    trace!("Error tcp connection : {}",e.to_string())
+                                    trace!("Error tcp connection : {e}")
                                 }
                             }
 
@@ -82,7 +82,7 @@ impl HttpServer {
 
                 }
                 Err(e) => {
-                    trace!("Error tcp connection : {}",e.to_string())
+                    trace!("Error tcp connection : {e}")
                 }
             }
 

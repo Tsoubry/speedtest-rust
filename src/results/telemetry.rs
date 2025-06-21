@@ -220,7 +220,7 @@ pub fn draw_result (data : &TelemetryData) -> Vec<u8> {
 
     let mut buffer: Cursor<Vec<u8>> = Cursor::new(Vec::new());
     if let Err(e) = img.write_to(&mut buffer, ImageFormat::Jpeg) {
-        error!("Image writer buffer error : {}",e.to_string())
+        error!("Image writer buffer error : {e}")
     }
     img.fill(0);
     drop(img);

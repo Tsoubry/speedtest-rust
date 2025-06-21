@@ -159,20 +159,20 @@ F: Send + Sync + Fn(Request) -> Pin<Box<dyn Future<Output = Response> + Send>>
             form_data : body_form_data.clone().unwrap_or(HashMap::new())
         }).await;
         if let Err(e) = buf_writer.write_all(&response.data).await {
-            trace!("Error socket write : {}",e.to_string())
+            trace!("Error socket write : {e}")
         }
         if response.chunk_count > 0 {
             for _ in 0..response.chunk_count {
                 if let Err(e) = buf_writer.write_all(GARBAGE_DATA.get().unwrap()).await {
-                    trace!("Error socket write chunk : {}",e.to_string())
+                    trace!("Error socket write chunk : {e}")
                 }
             }
             if let Err(e) = buf_writer.write_all(b"0\r\n\r\n").await {
-                trace!("Error socket write eof : {}",e.to_string())
+                trace!("Error socket write eof : {e}")
             }
         }
         if let Err(e) = buf_writer.flush().await {
-            trace!("Error socket flush : {}",e.to_string())
+            trace!("Error socket flush : {e}")
         }
     }
 }
