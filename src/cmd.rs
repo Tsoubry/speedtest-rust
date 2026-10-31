@@ -1,23 +1,13 @@
-use clap::{value_parser, Arg, ArgAction, Command};
+use clap::{value_parser, Arg, Command};
 
 #[derive(Debug)]
 pub struct Cmd {
-    pub download_ipdb : bool,
     pub server_config_path : Option<String>,
     pub bind_address : Option<String>,
     pub listen_port : Option<u16>,
     pub base_url : Option<String>,
     pub ipinfo_api_key : Option<String>,
     pub assets_path : Option<String>,
-    pub stats_password : Option<String>,
-    pub redact_ip_addresses : Option<bool>,
-    pub result_image_theme : Option<String>,
-    pub database_type : Option<String>,
-    pub database_hostname : Option<String>,
-    pub database_name : Option<String>,
-    pub database_username : Option<String>,
-    pub database_password : Option<String>,
-    pub database_file : Option<String>,
     pub enable_tls : Option<bool>,
     pub tls_cert_file : Option<String>,
     pub tls_key_file : Option<String>,
@@ -39,12 +29,6 @@ impl Cmd {
                 Arg::new("server-config-path")
                     .short('c')
                     .long("config")
-            )
-            .arg(
-                Arg::new("update-ipdb")
-                    .long("update-ipdb")
-                    .help("Download or update IPInfo country asn database")
-                    .action(ArgAction::SetTrue)
             )
             .arg(
                 Arg::new("bind-address")
@@ -79,60 +63,6 @@ impl Cmd {
                     .value_parser(value_parser!(String))
             )
             .arg(
-                Arg::new("stats-password")
-                    .long("stats-password")
-                    .help("Specify the password for logging into statistics page")
-                    .value_parser(value_parser!(String))
-            )
-            .arg(
-                Arg::new("redact-ips")
-                    .long("redact-ips")
-                    .help("Redact IP addresses")
-                    .value_parser(value_parser!(bool))
-            )
-            .arg(
-                Arg::new("result-image-theme")
-                    .long("result-image-theme")
-                    .help("Specify telemetry result image theme : light, dark")
-                    .value_parser(value_parser!(String))
-            )
-            .arg(
-                Arg::new("database-type")
-                    .long("database-type")
-                    .help("Specify the database type : mysql, postgres, sqlite, memory")
-                    .value_parser(value_parser!(String))
-            )
-            .arg(
-                Arg::new("database-hostname")
-                    .long("database-hostname")
-                    .help("Specify the database connection hostname")
-                    .value_parser(value_parser!(String))
-            )
-            .arg(
-                Arg::new("database-name")
-                    .long("database-name")
-                    .help("Specify the database name")
-                    .value_parser(value_parser!(String))
-            )
-            .arg(
-                Arg::new("database-username")
-                    .long("database-username")
-                    .help("Specify the database authentication username")
-                    .value_parser(value_parser!(String))
-            )
-            .arg(
-                Arg::new("database-password")
-                    .long("database-password")
-                    .help("Specify the database authentication password")
-                    .value_parser(value_parser!(String))
-            )
-            .arg(
-                Arg::new("database-file")
-                    .long("database-file")
-                    .help("Specify the database file path (for sqlite database type)")
-                    .value_parser(value_parser!(String))
-            )
-            .arg(
                 Arg::new("enable-tls")
                     .long("enable-tls")
                     .help("Enable and use TLS server")
@@ -151,42 +81,22 @@ impl Cmd {
                     .value_parser(value_parser!(String))
             )
             .get_matches();
-        let download_ipdb = args.get_flag("update-ipdb");
         let server_config_path : Option<String> = args.get_one::<String>("server-config-path").map(|s| s.to_owned());
         let bind_address : Option<String> = args.get_one::<String>("bind-address").map(|s| s.to_owned());
         let listen_port : Option<u16> = args.get_one::<u16>("listen-port").map(|s| s.to_owned());
         let base_url : Option<String> = args.get_one::<String>("base-url").map(|s| s.to_owned());
         let ipinfo_api_key : Option<String> = args.get_one::<String>("ipinfo-api-key").map(|s| s.to_owned());
         let assets_path : Option<String> = args.get_one::<String>("assets-path").map(|s| s.to_owned());
-        let stats_password : Option<String> = args.get_one::<String>("stats-password").map(|s| s.to_owned());
-        let redact_ip_addresses : Option<bool> = args.get_one::<bool>("redact-ips").map(|s| s.to_owned());
-        let result_image_theme : Option<String> = args.get_one::<String>("result-image-theme").map(|s| s.to_owned());
-        let database_type : Option<String> = args.get_one::<String>("database-type").map(|s| s.to_owned());
-        let database_hostname : Option<String> = args.get_one::<String>("database-hostname").map(|s| s.to_owned());
-        let database_name : Option<String> = args.get_one::<String>("database-name").map(|s| s.to_owned());
-        let database_username : Option<String> = args.get_one::<String>("database-username").map(|s| s.to_owned());
-        let database_password : Option<String> = args.get_one::<String>("database-password").map(|s| s.to_owned());
-        let database_file : Option<String> = args.get_one::<String>("database-file").map(|s| s.to_owned());
         let enable_tls : Option<bool> = args.get_one::<bool>("enable-tls").map(|s| s.to_owned());
         let tls_cert_file : Option<String> = args.get_one::<String>("tls-cert-file").map(|s| s.to_owned());
         let tls_key_file : Option<String> = args.get_one::<String>("tls-key-file").map(|s| s.to_owned());
         Cmd {
-            download_ipdb,
             server_config_path,
             bind_address,
             listen_port,
             base_url,
             ipinfo_api_key,
             assets_path,
-            stats_password,
-            redact_ip_addresses,
-            result_image_theme,
-            database_type,
-            database_hostname,
-            database_name,
-            database_username,
-            database_password,
-            database_file,
             enable_tls,
             tls_cert_file,
             tls_key_file,

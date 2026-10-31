@@ -14,16 +14,12 @@ pub struct Request {
     pub method: Method,
     pub remote_addr : String,
     pub query_params: HashMap<String, String>,
-    pub headers: CIHashMap<String>,
-    pub form_data : HashMap<String, String>
 }
 
 #[derive(Debug)]
 enum BodyType {
-    Fixed,
+    Fixed(u64),
     Chunked,
-    Form,
-    FormUrlEncoded
 }
 
 pub async fn handle_socket<R,W,F>(remote_addr : &str,buf_reader: &mut BufReader<R>,buf_writer : &mut BufWriter<W>,result : F)
@@ -58,104 +54,31 @@ F: Send + Sync + Fn(Request) -> Pin<Box<dyn Future<Output = Response> + Send>>
                 let _ = buf_writer.flush().await;
             }
         }
-        //read body content
-        let body_form_data = {
-            let (body_type,body_size) = check_has_body(&parsed_headers);
-            match body_type {
-                Some(body_type) => {
-                    match body_type {
-                        BodyType::Fixed => {
-                            match body_size {
-                                Some(body_size) => {
-                                    // Read and discard exactly `body_size` bytes. The previous loop
-                                    // used `read_exact` into a fixed 1024-byte buffer and added
-                                    // `buffer.len()` (always 1024) per iteration, so a Content-Length
-                                    // that is not a multiple of 1024 left a trailing partial chunk that
-                                    // `read_exact` would block on indefinitely (until the peer
-                                    // disconnects), hanging the upload. Reading with `read` and counting
-                                    // the *actual* bytes returned makes any Content-Length safe and
-                                    // removes the need for client-side payload padding. The larger
-                                    // buffer also cuts the per-1KB read-syscall overhead.
-                                    let mut buffer = [0u8; 65536];
-                                    let mut remaining = body_size as usize;
-                                    while remaining > 0 {
-                                        let want = remaining.min(buffer.len());
-                                        match buf_reader.read(&mut buffer[..want]).await {
-                                            Ok(0) => break,          // peer closed before sending it all
-                                            Ok(n) => remaining -= n, // count what we actually read
-                                            Err(_) => break,
-                                        }
-                                    }
-                                    buffer.fill(0);
-                                    None
-                                }
-                                None => {
-                                    None
-                                }
-                            }
-                        }
-                        BodyType::Chunked => {
-                            let mut buffer = [0; 1024];
-                            loop {
-                                let bytes_read = buf_reader.read_exact(&mut buffer).await;
-                                match bytes_read {
-                                    Ok(0) => {
-                                        buffer.fill(0);
-                                        break;
-                                    }
-                                    Ok(_) => {
-                                        buffer.fill(0);
-                                    }
-                                    Err(_) => {
-                                        break;
-                                    }
-                                }
-                            }
-                            None
-                        }
-                        BodyType::Form => {
-                            let form_boundary = get_content_boundary(parsed_headers.get("Content-Type").unwrap());
-                            match form_boundary {
-                                Some(form_boundary) => {
-                                    match body_size {
-                                        Some(body_size) => {
-                                            let mut body = Vec::with_capacity(body_size as usize);
-                                            buf_reader.take(body_size).read_to_end(&mut body).await.unwrap();
-                                            let form_data = parse_form_data(&form_boundary,&body);
-                                            body.fill(0);
-                                            Some(form_data)
-                                        }
-                                        None => {
-                                            None
-                                        }
-                                    }
-                                }
-                                None => {
-                                    None
-                                }
-                            }
-                        }
-                        BodyType::FormUrlEncoded => {
-                            match body_size {
-                                Some(body_size) => {
-                                    let mut body = Vec::with_capacity(body_size as usize);
-                                    buf_reader.take(body_size).read_to_end(&mut body).await.unwrap();
-                                    let form_data = parse_form_url_encoded(&body);
-                                    body.fill(0);
-                                    Some(form_data)
-                                }
-                                None => {
-                                    None
-                                }
-                            }
-                        }
+        //read and discard body content
+        match check_has_body(&parsed_headers) {
+            Some(BodyType::Fixed(body_size)) => {
+                // Read exactly `body_size` bytes, counting the bytes actually returned, so any
+                // Content-Length is safe (no blocking on a partial trailing chunk).
+                let mut buffer = [0u8; 65536];
+                let mut remaining = body_size as usize;
+                while remaining > 0 {
+                    let want = remaining.min(buffer.len());
+                    match buf_reader.read(&mut buffer[..want]).await {
+                        Ok(0) | Err(_) => break, // peer closed before sending it all
+                        Ok(n) => remaining -= n,
                     }
                 }
-                None => {
-                    None
+            }
+            Some(BodyType::Chunked) => {
+                let mut buffer = [0; 1024];
+                while let Ok(n) = buf_reader.read_exact(&mut buffer).await {
+                    if n == 0 {
+                        break;
+                    }
                 }
             }
-        };
+            None => {}
+        }
         //trust proxy
         let remote_addr = trust_addr_proxy(&parsed_headers,remote_addr);
         //gen request
@@ -164,8 +87,6 @@ F: Send + Sync + Fn(Request) -> Pin<Box<dyn Future<Output = Response> + Send>>
             method: parsed_status.0,
             remote_addr,
             query_params: parsed_status.2,
-            headers: parsed_headers,
-            form_data : body_form_data.clone().unwrap_or(HashMap::new())
         }).await;
         if let Err(e) = buf_writer.write_all(&response.data).await {
             trace!("Error socket write : {e}")
@@ -191,11 +112,6 @@ fn check_is_status_line (line : String) -> bool {
     line.contains("http/1.") && (line.starts_with("get") || line.starts_with("options") || line.starts_with("post"))
 }
 
-#[allow(dead_code)]
-fn hex_string_to_int(hex_string: &str) -> Option<u64> {
-    u64::from_str_radix(hex_string, 16).ok()
-}
-
 pub async fn header_parser<R>(buf_reader: &mut BufReader<R>) -> CIHashMap<String>
 where
     R: AsyncReadExt + Unpin
@@ -218,37 +134,17 @@ where
     headers_out
 }
 
-fn check_has_body(headers : &CIHashMap<String>) -> (Option<BodyType>,Option<u64>) {
-    let content_type_form = if let Some(content_type) = headers.get("Content-Type") {
-        if content_type.starts_with("multipart/form-data;") {
-            Some(BodyType::Form)
-        } else if content_type.starts_with("application/x-www-form-urlencoded") {
-            Some(BodyType::FormUrlEncoded)
-        } else {
-            None
-        }
-    } else {
-        None
-    };
-    //check fixed body
+fn check_has_body(headers : &CIHashMap<String>) -> Option<BodyType> {
     if let Some(content_len) = headers.get("Content-Length") {
         let content_len = content_len.parse::<u64>().unwrap_or(0);
         if content_len > 0 {
-            let body_type = if let Some(content_type_form) = content_type_form {
-                content_type_form
-            } else {
-                BodyType::Fixed
-            };
-            return (Some(body_type),Some(content_len))
-        };
-    };
-    //check chunked body
-    if let Some(transfer_encoding) = headers.get("Transfer-Encoding") {
-        if transfer_encoding == "chunked" {
-            return (Some(BodyType::Chunked),Some(0))
+            return Some(BodyType::Fixed(content_len))
         }
     }
-    (None,None)
+    if headers.get("Transfer-Encoding").is_some_and(|te| te == "chunked") {
+        return Some(BodyType::Chunked)
+    }
+    None
 }
 
 fn parse_request_status_line (line : String) -> (Method,String,HashMap<String, String>) {
@@ -294,66 +190,6 @@ fn trust_addr_proxy(headers : &CIHashMap<String>,remote_addr : &str) -> String {
                 s.split(',').next().map(|ip| ip.trim())
             })
         }).unwrap_or(remote_addr).to_string()
-}
-
-//form-data-parser
-fn get_content_boundary(content_type : &str) -> Option<String> {
-    let parts = content_type.split(';');
-    let mut boundary = None;
-    for part in parts {
-        let part = part.trim();
-        if part.starts_with("boundary=") {
-            let mut boundary_str = part.splitn(2,'=');
-            let boundary_result = boundary_str.nth(1);
-            match boundary_result {
-                None => {},
-                Some(boundary_result) => {
-                    let mut boundary_p = "--".to_string();
-                    boundary_p.push_str(boundary_result);
-                    boundary = Some(boundary_p)
-                }
-            }
-            break;
-        }
-    }
-    boundary
-}
-
-fn parse_form_data(boundary : &str,body : &[u8]) -> HashMap<String,String> {
-    let body_str = String::from_utf8_lossy(body);
-    let mut form_data = HashMap::new();
-    let form_parts = body_str.split(boundary);
-    for form_part in form_parts {
-        let form_part = form_part.trim();
-        if !form_part.is_empty() && form_part != "--" {
-            let mut body_parts = form_part.splitn(2,"\r\n");  //Content-Disposition: form-data; name="key"\r\nvalue
-            if let (Some(disposition),Some(value)) = (body_parts.next(),body_parts.next()) {
-                let value = value.replace("\r\n","");
-                //parse key
-                let mut split_disposition = disposition.splitn(2,';');
-                if let Some(name_part) = split_disposition.nth(1) {
-                    if let Some(key) = name_part.split_once('=').map(|x|x.1) {
-                        let key = key.replace('"',"");
-                        form_data.insert(key,value);
-                    }
-                }
-            }
-        }
-    }
-    form_data
-}
-
-fn parse_form_url_encoded(body : &[u8]) -> HashMap<String,String> {
-    let body_str = String::from_utf8_lossy(body);
-    let split_parts = body_str.split('&');
-    let mut form_data = HashMap::new();
-    for part in split_parts {
-        let mut split_key_value = part.splitn(2,'=');
-        if let (Some(key),Some(value)) = (split_key_value.next(),split_key_value.next()) {
-            form_data.insert(key.to_string(),value.to_string());
-        }
-    };
-    form_data
 }
 
 #[cfg(test)]

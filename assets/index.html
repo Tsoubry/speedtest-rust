@@ -13,7 +13,7 @@ let SPEEDTEST_SERVERS = get_servers();
 
 //INITIALIZE SPEEDTEST
 let s = new Speedtest(); //create speedtest object
-s.setParameter("telemetry_level","basic"); //enable telemetry
+s.setParameter("telemetry_level","disabled"); //this server does not store results
 
 //SERVER AUTO SELECTION
 function initServers(){
@@ -115,7 +115,6 @@ function startStop(){
 	}else{
 		//test is not running, begin
 		I("startStopBtn").className="running";
-		I("shareArea").style.display="none";
 		I("server").disabled=true;
 		s.onupdate=function(data){
             uiData=data;
@@ -124,19 +123,6 @@ function startStop(){
             I("startStopBtn").className="";
             I("server").disabled=false;
             updateUI(true);
-            if(!aborted){
-                //if testId is present, show sharing panel, otherwise do nothing
-                try{
-					const testId = uiData.testId;
-					if(testId!=null){
-						const shareURL = window.location.href.substring(0, window.location.href.lastIndexOf("/")) + "/backend/results/?id=" + testId;
-						I("resultsImg").src=shareURL;
-                        I("resultsURL").value=shareURL;
-                        I("testId").innerHTML=testId;
-                        I("shareArea").style.display="";
-                    }
-                }catch(e){}
-            }
 		};
 		s.start();
 	}
@@ -305,18 +291,6 @@ function initUI(){
 		display:block;
         margin: 0 auto;
 	}
-	#shareArea{
-		width:95%;
-		max-width:40em;
-		margin:0 auto;
-		margin-top:2em;
-	}
-	#shareArea > *{
-		display:block;
-		width:100%;
-		height:auto;
-		margin: 0.25em 0;
-	}
 	#privacyPolicy{
         position:fixed;
         top:2em;
@@ -420,49 +394,17 @@ function initUI(){
 		<div id="ipArea">
 			<span id="ip"></span>
 		</div>
-		<div id="shareArea" style="display:none">
-			<h3>Share results</h3>
-			<p>Test ID: <span id="testId"></span></p>
-			<input type="text" value="" id="resultsURL" readonly="readonly" onclick="this.select();this.focus();this.select();document.execCommand('copy');alert('Link copied')"/>
-			<img src="" id="resultsImg" />
-		</div>
 	</div>
 	<a href="https://github.com/librespeed/speedtest">Source code</a>
 </div>
 <div id="privacyPolicy" style="display:none">
     <h2>Privacy Policy</h2>
-    <p>This HTML5 Speedtest server is configured with telemetry enabled.</p>
-    <h4>What data we collect</h4>
+    <p>This HTML5 Speedtest server does not store any data.</p>
+    <h4>What happens during the test</h4>
     <p>
-        At the end of the test, the following data is collected and stored:
-        <ul>
-            <li>Test ID</li>
-            <li>Time of testing</li>
-            <li>Test results (download and upload speed, ping and jitter)</li>
-            <li>IP address</li>
-            <li>ISP information</li>
-            <li>Approximate location (inferred from IP address, not GPS)</li>
-            <li>User agent and browser locale</li>
-            <li>Test log (contains no personal information)</li>
-        </ul>
-    </p>
-    <h4>How we use the data</h4>
-    <p>
-        Data collected through this service is used to:
-        <ul>
-            <li>Allow sharing of test results (sharable image for forums, etc.)</li>
-            <li>To improve the service offered to you (for instance, to detect problems on our side)</li>
-        </ul>
-        No personal information is disclosed to third parties.
-    </p>
-    <h4>Your consent</h4>
-    <p>
-        By starting the test, you consent to the terms of this privacy policy.
-    </p>
-    <h4>Data removal</h4>
-    <p>
-        If you want to have your information deleted, you need to provide either the ID of the test or your IP address. This is the only way to identify your data, without this information we won't be able to comply with your request.<br/><br/>
-        Contact this email address for all deletion requests: <a href="mailto:PUT@YOUR_EMAIL.HERE">TO BE FILLED BY DEVELOPER</a>.
+        Your browser exchanges test traffic with this server to measure download and upload speed, ping and jitter.
+        Your IP address is returned to your browser to be displayed, and ISP information is looked up for it when configured.
+        Test results are shown only in your browser. No telemetry, logs or statistics are recorded.
     </p>
     <br/><br/>
     <div class="closePrivacyPolicy">

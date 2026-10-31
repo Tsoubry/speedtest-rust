@@ -3,7 +3,7 @@ use std::io::Error;
 use std::path::Path;
 use std::sync::OnceLock;
 
-use ab_glyph::FontRef;
+use chrono::Local;
 use include_dir::{include_dir, Dir};
 use log::{info, LevelFilter, trace};
 use serde::Deserialize;
@@ -11,9 +11,6 @@ use serde_json::Value;
 use tokio::runtime::{Builder, Runtime};
 use std::io::Write;
 use crate::cmd::Cmd;
-use crate::config::time::current_formatted_time;
-
-pub mod time;
 
 trait SetIfSome<T> {
     fn set_if_some(&mut self, option: Option<T>);
@@ -42,16 +39,7 @@ pub struct ServerConfig {
     pub worker_threads: Value,
     pub base_url : String,
     pub ipinfo_api_key : String,
-    pub stats_password : String,
-    pub redact_ip_addresses : bool,
-    pub result_image_theme : String,
     pub assets_path : String,
-    pub database_type : String,
-    pub database_hostname : Option<String>,
-    pub database_name : Option<String>,
-    pub database_username : Option<String>,
-    pub database_password : Option<String>,
-    pub database_file : Option<String>,
     pub enable_tls : bool,
     pub tls_cert_file : String,
     pub tls_key_file : String
@@ -65,16 +53,7 @@ impl Default for ServerConfig {
             worker_threads: Value::from(1),
             base_url: "backend".to_string(),
             ipinfo_api_key: "".to_string(),
-            stats_password: "".to_string(),
-            redact_ip_addresses: false,
-            result_image_theme: "light".to_string(),
             assets_path: "".to_string(),
-            database_type: "none".to_string(),
-            database_hostname: None,
-            database_name: None,
-            database_username: None,
-            database_password: None,
-            database_file: None,
             enable_tls: false,
             tls_cert_file: "".to_string(),
             tls_key_file: "".to_string(),
@@ -153,6 +132,10 @@ pub fn init_configs (cmd : Cmd) -> std::io::Result<()> {
     }
 }
 
+fn current_formatted_time() -> String {
+    Local::now().format("%Y-%m-%d %H:%M:%S%.3f").to_string()
+}
+
 fn open_config_file(path : &str) -> std::io::Result<ServerConfig> {
     let config_file_content = std::fs::read_to_string(path); // open file
     match config_file_content {
@@ -187,9 +170,6 @@ fn generate_routes(base_url : &str) {
     routes.insert(format!("{base_url}/empty"),"empty");
     routes.insert(format!("{base_url}/garbage"),"garbage");
     routes.insert(format!("{base_url}/getIP"),"getIP");
-    routes.insert(format!("{base_url}/results"),"results");
-    routes.insert(format!("{base_url}/results/telemetry"),"results/telemetry");
-    routes.insert(format!("{base_url}/stats"),"stats");
     ROUTES.get_or_init(|| routes);
 }
 
@@ -201,15 +181,6 @@ fn initialize (mut config: ServerConfig,cmd : Cmd) -> std::io::Result<()> {
     config.base_url.set_if_some(cmd.base_url);
     config.ipinfo_api_key.set_if_some(cmd.ipinfo_api_key);
     config.assets_path.set_if_some(cmd.assets_path);
-    config.stats_password.set_if_some(cmd.stats_password);
-    config.redact_ip_addresses.set_if_some(cmd.redact_ip_addresses);
-    config.result_image_theme.set_if_some(cmd.result_image_theme);
-    config.database_type.set_if_some(cmd.database_type);
-    config.database_hostname.set_if_some(cmd.database_hostname);
-    config.database_name.set_if_some(cmd.database_name);
-    config.database_username.set_if_some(cmd.database_username);
-    config.database_password .set_if_some(cmd.database_password);
-    config.database_file.set_if_some(cmd.database_file);
     config.enable_tls.set_if_some(cmd.enable_tls);
     config.tls_cert_file.set_if_some(cmd.tls_cert_file);
     config.tls_key_file.set_if_some(cmd.tls_key_file);
@@ -231,8 +202,6 @@ fn initialize (mut config: ServerConfig,cmd : Cmd) -> std::io::Result<()> {
     garbage.extend(vec![0; CHUNK_SIZE]);
     garbage.extend(b"\r\n");
     GARBAGE_DATA.get_or_init(|| garbage);
-    //font for result image
-    FONT.get_or_init(|| FontRef::try_from_slice(include_bytes!("../../assets/open-sans.ttf")).unwrap());
     Ok(())
 }
 
@@ -246,7 +215,6 @@ const CHUNK_SIZE : usize = 524288; //512 Kilobytes x2
 pub static ROUTES: OnceLock<HashMap<String,&str>> = OnceLock::new();
 pub static GARBAGE_DATA: OnceLock<Vec<u8>> = OnceLock::new();
 pub static SERVER_CONFIG: OnceLock<ServerConfig> = OnceLock::new();
-pub static FONT: OnceLock<FontRef> = OnceLock::new();
 pub static DEF_ASSETS : Dir = include_dir!("assets");
 pub const HEAD_ART : &str = r#"
      _ _ _                                       _

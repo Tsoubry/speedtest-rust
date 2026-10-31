@@ -5,10 +5,8 @@ use std::io::Read;
 use crate::config::{DEF_ASSETS, SERVER_CONFIG};
 
 pub mod http_server;
-mod routes;
 pub mod request;
 pub mod response;
-pub mod cookie;
 pub mod tls;
 pub mod http_client;
 mod tcp_socket;
@@ -98,14 +96,4 @@ pub fn get_chunk_count (query_params : &HashMap<String,String>) -> i32 {
     }
     chunks *= 2;
     chunks
-}
-
-#[macro_export]
-macro_rules! make_route {
-    ($a:expr) => {
-        {
-            let base_url = SERVER_CONFIG.get().unwrap().base_url.clone();
-            format!("{}{}",base_url,$a)
-        }
-    };
 }

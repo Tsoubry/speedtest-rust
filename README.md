@@ -20,34 +20,52 @@ Compatible with all librespeed clients :
 - Lightweight & Low overhead
 - Low level networking
 - Based on tokio-rs (asynchronous)
+- No database, telemetry or statistics: nothing is stored
 
 ## Features
 - Download
 - Upload
 - Ping
 - Jitter
-- IP Address, ISP
-- Telemetry (optional)
-- Results sharing (optional)
+- IP Address, ISP (ISP lookup requires an [ipinfo.io](https://ipinfo.io) API key)
 
-## Server requirements
-- Any [Rust supported platforms](https://doc.rust-lang.org/beta/rustc/platform-support.html)
-- PostgreSQL or MySQL database to store test results (optional)
-- A fast! Internet connection
+## Run with Podman
+Linux only, `amd64` (x86_64) and `arm64` (aarch64) are supported.
 
-## Installation
+```sh
+podman build -f Dockerfile.alpine -t speedtest-rust .
+podman run --rm -p 8080:8080 speedtest-rust
+```
 
-### Install using prebuilt binaries
+Then open <http://localhost:8080>. To use your own configuration:
 
-1. Download the appropriate binary file from the [releases](https://github.com/librespeed/speedtest-rust/releases/) page.
-2. Unzip the archive.
-3. Make changes to the configuration.
-4. Run the binary.
-5. Or setup as service :
-    - Copy `setup_systemd.sh` on linux or `setup_sc_win.bat` on windows system in extracted folder.
-    - Run the script file to setup as service
+```sh
+podman run --rm -p 8080:8080 -v ./configs.toml:/usr/local/bin/configs.toml:ro,Z speedtest-rust
+```
 
-[Read full installation methods in wiki](https://github.com/librespeed/speedtest-rust/wiki/Installation)
+To build for another architecture:
+
+```sh
+podman build --platform linux/arm64 -f Dockerfile.alpine -t speedtest-rust:arm64 .
+```
+
+## Build from source
+```sh
+cargo build --release
+./target/release/librespeed-rs
+```
+
+## Configuration
+Settings are read from `configs.toml` (or the file given with `-c`) and can be overridden with command line flags (see `--help`):
+
+| Setting | Description |
+|---|---|
+| `bind_address`, `listen_port` | Address and port to listen on |
+| `worker_threads` | Number of worker threads, or `"auto"` |
+| `base_url` | Prefix of the API routes (`/{base_url}/empty`, `garbage`, `getIP`) |
+| `ipinfo_api_key` | Optional ipinfo.io API key to show ISP information |
+| `assets_path` | Directory of the web frontend; empty serves the embedded one |
+| `enable_tls`, `tls_cert_file`, `tls_key_file` | Serve over TLS |
 
 ## Note :
 This project can be much better.\
