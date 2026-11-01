@@ -1,8 +1,8 @@
 [package]
 name = "librespeed-rs"
-version = "1.4.0"
+version = "2.0.0"
 edition = "2021"
-authors = ["Sudo Dios"]
+authors = ["Sudo Dios", "Tanguy Soubry"]
 description = "Rust backend for LibreSpeed"
 
 [dependencies]
@@ -31,6 +31,6 @@ case_insensitive_hashmap = "1.0.1"
 [profile.release]
 codegen-units = 1
 opt-level = "z"
-panic = "abort"
+panic = "unwind"
 lto = true
 strip = true

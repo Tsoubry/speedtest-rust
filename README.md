@@ -1,13 +1,11 @@
 ![LibreSpeed Logo](https://github.com/librespeed/speedtest/blob/master/.logo/logo3.png?raw=true)
 
-# speedtest-rust
+# Speedtest Rust
 
 No Flash, No Java, No WebSocket, No Bullshit.
 
-## Try it
-[Take a speed test](https://librespeed-rs.ir)
-
 ## Compatibility
+
 Compatible with all librespeed clients :
 
 - Web Client
@@ -30,6 +28,7 @@ Compatible with all librespeed clients :
 - IP Address, ISP (ISP lookup requires an [ipinfo.io](https://ipinfo.io) API key)
 
 ## Run with Podman
+
 Linux only, `amd64` (x86_64) and `arm64` (aarch64) are supported.
 
 ```sh
@@ -49,13 +48,15 @@ To build for another architecture:
 podman build --platform linux/arm64 -f Dockerfile.alpine -t speedtest-rust:arm64 .
 ```
 
-## Build from source
+## Build from Source
+
 ```sh
 cargo build --release
 ./target/release/librespeed-rs
 ```
 
 ## Configuration
+
 Settings are read from `configs.toml` (or the file given with `-c`) and can be overridden with command line flags (see `--help`):
 
 | Setting | Description |
@@ -67,11 +68,8 @@ Settings are read from `configs.toml` (or the file given with `-c`) and can be o
 | `assets_path` | Directory of the web frontend; empty serves the embedded one |
 | `enable_tls`, `tls_cert_file`, `tls_key_file` | Serve over TLS |
 
-## Note :
-This project can be much better.\
-Therefore, your PRs are accepted to improve and solve problems
-
 ## License
+
 Copyright (C) 2016-2024 Federico Dossena\
 Copyright (C) 2024-2026 Sudo Dios
 
@@ -82,8 +80,8 @@ the Free Software Foundation, either version 3 of the License, or
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/lgpl>.
+along with this program. If not, see <https://www.gnu.org/licenses/lgpl>.

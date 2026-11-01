@@ -1,6 +1,4 @@
-# bind socket adress
 bind_address="::"
-# socket listent port, default is 8080
 listen_port=8080
 
 # you can specify the number of worker threads. default is 1
