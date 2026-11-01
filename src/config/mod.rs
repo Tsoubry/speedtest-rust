@@ -1,15 +1,17 @@
-use std::collections::HashMap;
-use std::io::Error;
-use std::path::Path;
-use std::sync::OnceLock;
+use std::{
+    collections::HashMap,
+    io::{Error, Write},
+    path::Path,
+    sync::OnceLock,
+};
 
 use chrono::Local;
-use include_dir::{include_dir, Dir};
-use log::{info, LevelFilter, trace};
+use include_dir::{Dir, include_dir};
+use log::{LevelFilter, info, trace};
 use serde::Deserialize;
 use serde_json::Value;
 use tokio::runtime::{Builder, Runtime};
-use std::io::Write;
+
 use crate::cmd::Cmd;
 
 trait SetIfSome<T> {
@@ -34,15 +36,15 @@ impl<T> SetIfSome<T> for Option<T> {
 
 #[derive(Deserialize, Debug)]
 pub struct ServerConfig {
-    pub bind_address : String,
-    pub listen_port : u16,
+    pub bind_address: String,
+    pub listen_port: u16,
     pub worker_threads: Value,
-    pub base_url : String,
-    pub ipinfo_api_key : String,
-    pub assets_path : String,
-    pub enable_tls : bool,
-    pub tls_cert_file : String,
-    pub tls_key_file : String
+    pub base_url: String,
+    pub ipinfo_api_key: String,
+    pub assets_path: String,
+    pub enable_tls: bool,
+    pub tls_cert_file: String,
+    pub tls_key_file: String,
 }
 
 impl Default for ServerConfig {
@@ -61,7 +63,7 @@ impl Default for ServerConfig {
     }
 }
 
-pub fn init_runtime () -> std::io::Result<Runtime> {
+pub fn init_runtime() -> std::io::Result<Runtime> {
     let worker_threads = SERVER_CONFIG.get().unwrap().worker_threads.clone();
     if worker_threads.is_string() && worker_threads == "auto" {
         Builder::new_multi_thread()
@@ -72,10 +74,7 @@ pub fn init_runtime () -> std::io::Result<Runtime> {
     } else {
         let worker_threads = worker_threads.as_u64().unwrap_or(1) as usize;
         match worker_threads {
-            0 | 1 => Builder::new_current_thread()
-                .enable_io()
-                .enable_time()
-                .build(),
+            0 | 1 => Builder::new_current_thread().enable_io().enable_time().build(),
             _ => Builder::new_multi_thread()
                 .thread_name("librespeed-rs")
                 .worker_threads(worker_threads)
@@ -86,14 +85,21 @@ pub fn init_runtime () -> std::io::Result<Runtime> {
     }
 }
 
-pub fn init_configs (cmd : Cmd) -> std::io::Result<()> {
+pub fn init_configs(cmd: Cmd) -> std::io::Result<()> {
     //init logger
     env_logger::builder()
-        .format(|buf,rec| {
+        .format(|buf, rec| {
             let style = buf.default_level_style(rec.level());
-            writeln!(buf, "[{} {style}{}{style:#} librespeed_rs] {}",current_formatted_time(),rec.level(), rec.args())
+            writeln!(
+                buf,
+                "[{} {style}{}{style:#} librespeed_rs] {}",
+                current_formatted_time(),
+                rec.level(),
+                rec.args()
+            )
         })
-        .filter_level(LevelFilter::Info).init();
+        .filter_level(LevelFilter::Info)
+        .init();
     println!("{HEAD_ART}");
     //find server configs
     match cmd.server_config_path.clone() {
@@ -101,13 +107,11 @@ pub fn init_configs (cmd : Cmd) -> std::io::Result<()> {
             let config = open_config_file(&config_path);
             match config {
                 Ok(config) => {
-                    initialize(config,cmd)?;
-                    info!("Configs initialized file : {}",config_path);
+                    initialize(config, cmd)?;
+                    info!("Configs initialized file : {}", config_path);
                     Ok(())
                 }
-                Err(e) => {
-                    Err(Error::other(e))
-                }
+                Err(e) => Err(Error::other(e)),
             }
         }
         None => {
@@ -115,16 +119,16 @@ pub fn init_configs (cmd : Cmd) -> std::io::Result<()> {
             match config {
                 // open config from current dir
                 Ok(config) => {
-                    initialize(config,cmd)?;
+                    initialize(config, cmd)?;
                     info!("Configs initialized file : configs.toml");
                     Ok(())
                 }
                 // set default config
                 Err(e) => {
                     let config = ServerConfig::default();
-                    initialize(config,cmd)?;
+                    initialize(config, cmd)?;
                     info!("Configs initialized with defaults");
-                    trace!("Load config default path error : {}",e);
+                    trace!("Load config default path error : {}", e);
                     Ok(())
                 }
             }
@@ -136,44 +140,39 @@ fn current_formatted_time() -> String {
     Local::now().format("%Y-%m-%d %H:%M:%S%.3f").to_string()
 }
 
-fn open_config_file(path : &str) -> std::io::Result<ServerConfig> {
+fn open_config_file(path: &str) -> std::io::Result<ServerConfig> {
     let config_file_content = std::fs::read_to_string(path); // open file
     match config_file_content {
-        Ok(config_file_content) => { // opened file
+        Ok(config_file_content) => {
+            // opened file
             let config = toml::from_str(&config_file_content); // parse config file
             match config {
-                Ok(config) => {
-                    Ok(config)
-                }
-                Err(e) => {
-                    Err(Error::other(e))
-                }
+                Ok(config) => Ok(config),
+                Err(e) => Err(Error::other(e)),
             }
         }
-        Err(e) => {
-            Err(Error::other(e))
-        }
+        Err(e) => Err(Error::other(e)),
     }
 }
 
-fn validate_base_url_path(base_url : &str) -> String {
-    let base_url = base_url.replace('/',"");
+fn validate_base_url_path(base_url: &str) -> String {
+    let base_url = base_url.replace('/', "");
     if base_url.is_empty() {
         "".to_string()
     } else {
-        format!("/{}",base_url)
+        format!("/{}", base_url)
     }
 }
 
-fn generate_routes(base_url : &str) {
+fn generate_routes(base_url: &str) {
     let mut routes = HashMap::new();
-    routes.insert(format!("{base_url}/empty"),"empty");
-    routes.insert(format!("{base_url}/garbage"),"garbage");
-    routes.insert(format!("{base_url}/getIP"),"getIP");
+    routes.insert(format!("{base_url}/empty"), "empty");
+    routes.insert(format!("{base_url}/garbage"), "garbage");
+    routes.insert(format!("{base_url}/getIP"), "getIP");
     ROUTES.get_or_init(|| routes);
 }
 
-fn initialize (mut config: ServerConfig,cmd : Cmd) -> std::io::Result<()> {
+fn initialize(mut config: ServerConfig, cmd: Cmd) -> std::io::Result<()> {
     //server config
     config.base_url = validate_base_url_path(&config.base_url);
     config.bind_address.set_if_some(cmd.bind_address);
@@ -205,18 +204,18 @@ fn initialize (mut config: ServerConfig,cmd : Cmd) -> std::io::Result<()> {
     Ok(())
 }
 
-fn check_assets_path (dir : &str) -> bool {
-    let index_file = format!("{}/index.html",dir);
+fn check_assets_path(dir: &str) -> bool {
+    let index_file = format!("{}/index.html", dir);
     Path::new(&index_file).exists()
 }
 
-/*Static Values*/
-const CHUNK_SIZE : usize = 524288; //512 Kilobytes x2
-pub static ROUTES: OnceLock<HashMap<String,&str>> = OnceLock::new();
+/* Static Values */
+const CHUNK_SIZE: usize = 524288; //512 Kilobytes x2
+pub static ROUTES: OnceLock<HashMap<String, &str>> = OnceLock::new();
 pub static GARBAGE_DATA: OnceLock<Vec<u8>> = OnceLock::new();
 pub static SERVER_CONFIG: OnceLock<ServerConfig> = OnceLock::new();
-pub static DEF_ASSETS : Dir = include_dir!("assets");
-pub const HEAD_ART : &str = r#"
+pub static DEF_ASSETS: Dir = include_dir!("assets");
+pub const HEAD_ART: &str = r#"
      _ _ _                                       _
     | (_) |__  _ __ ___  ___ _ __   ___  ___  __| |      _ __ ___
     | | | '_ \| '__/ _ \/ __| '_ \ / _ \/ _ \/ _` |_____| '__/ __|

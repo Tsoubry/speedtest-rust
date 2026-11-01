@@ -1,13 +1,13 @@
 #![forbid(unsafe_code)]
 
 use log::error;
-use crate::cmd::Cmd;
-use crate::http::http_server::HttpServer;
 
+use crate::{cmd::Cmd, http::http_server::HttpServer};
+
+mod cmd;
+mod config;
 mod http;
 mod ip;
-mod config;
-mod cmd;
 
 fn main() {
     if let Err(e) = config::init_configs(Cmd::parse_args()) {

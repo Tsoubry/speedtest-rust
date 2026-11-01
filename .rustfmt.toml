@@ -1,0 +1,19 @@
+edition = "2024"
+style_edition = "2024"
+
+# All the fun formatting options are still unstable
+# To use them, install the nightly toolchain and run: cargo +nightly fmt
+
+# Stable options
+
+max_width = 120
+
+# Nightly options
+
+unstable_features = true
+brace_style = "PreferSameLine"
+format_code_in_doc_comments = true
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"
+wrap_comments = true
+comment_width = 120

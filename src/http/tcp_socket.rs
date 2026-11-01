@@ -1,20 +1,26 @@
-use crate::config::ServerConfig;
 use core::fmt;
-use socket2::{Domain, Type};
-use std::fmt::Formatter;
-use std::io;
-use std::io::{Error, ErrorKind};
-use std::net::{IpAddr, SocketAddr};
-use std::str::FromStr;
-use tokio::net::{TcpListener, TcpStream};
+use std::{
+    fmt::Formatter,
+    io,
+    io::{Error, ErrorKind},
+    net::{IpAddr, SocketAddr},
+    str::FromStr,
+};
+
 use futures::future::select_all;
 use log::info;
-use tokio::{select, signal};
+use socket2::{Domain, Type};
+use tokio::{
+    net::{TcpListener, TcpStream},
+    select, signal,
+};
+
+use crate::config::ServerConfig;
 
 pub struct TcpSocket {
     tcp_listeners: Vec<TcpListener>,
     addrs: Vec<TcpAddr>,
-    pub(crate) shutdown_tx : tokio::sync::broadcast::Sender<()>,
+    pub(crate) shutdown_tx: tokio::sync::broadcast::Sender<()>,
     from_sys: bool,
 }
 
@@ -67,17 +73,15 @@ impl TcpSocket {
         Ok(tcp_listener)
     }
 
-    pub async fn accept(&self,shutdown_rx: &mut tokio::sync::broadcast::Receiver<()>) -> io::Result<Option<(TcpStream, SocketAddr)>> {
+    pub async fn accept(
+        &self,
+        shutdown_rx: &mut tokio::sync::broadcast::Receiver<()>,
+    ) -> io::Result<Option<(TcpStream, SocketAddr)>> {
         if self.tcp_listeners.is_empty() {
-            return Err(Error::new(
-                ErrorKind::NotConnected,
-                "No listeners found.",
-            ));
+            return Err(Error::new(ErrorKind::NotConnected, "No listeners found."));
         }
-    
-        let accept_futures = self.tcp_listeners.iter().map(|listener| {
-            Box::pin(listener.accept())
-        });
+
+        let accept_futures = self.tcp_listeners.iter().map(|listener| Box::pin(listener.accept()));
 
         select! {
             res = select_all(accept_futures) => {
@@ -112,7 +116,6 @@ impl TcpSocket {
             let _ = shutdown_tx.send(());
         });
     }
-
 }
 
 impl fmt::Display for TcpSocket {
