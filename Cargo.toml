@@ -4,6 +4,10 @@ version = "2.0.0"
 edition = "2024"
 authors = ["Sudo Dios", "Tanguy Soubry"]
 description = "Rust backend for LibreSpeed"
+license-file = "LICENSE.txt"
+repository = "https://github.com/Tsoubry/speedtest-rust"
+keywords = ["speedtest", "librespeed", "network", "bandwidth", "server"]
+categories = ["network-programming", "web-programming::http-server"]
 
 [dependencies]
 #async net
@@ -34,3 +38,47 @@ opt-level = "z"
 panic = "unwind"
 lto = true
 strip = true
+
+[lints.rust]
+arithmetic_overflow = "deny"
+dead_code = "deny"
+unnecessary_transmutes = "deny"
+unused_crate_dependencies = "deny"
+unused_imports = "deny"
+unused_results = "deny"
+
+[lints.clippy]
+absolute_paths = "deny"
+allow_attributes_without_reason = "deny"
+arbitrary_source_item_ordering = "deny"
+arithmetic_side_effects = "allow"
+cargo = { level = "deny", priority = -1 }
+multiple_crate_versions = "allow"
+clone_on_ref_ptr = "deny"
+doc_paragraphs_missing_punctuation = "deny"
+expect_used = "deny"
+indexing_slicing = "deny"
+integer_division = "allow"
+join_absolute_paths = "deny"
+let_underscore_must_use = "deny"
+min_ident_chars = "deny"
+option_env_unwrap = "deny"
+panicking_unwrap = "deny"
+pedantic = { level = "deny", priority = -1 }
+rc_buffer = "deny"
+semicolon_inside_block = "deny"
+serde_api_misuse = "deny"
+shadow_reuse = "deny"
+single_char_lifetime_names = "deny"
+string_slice = "deny"
+todo = "deny"
+transmute_ptr_to_ref = "deny"
+transmute_undefined_repr = "deny"
+undocumented_unsafe_blocks = "deny"
+uninit_vec = "deny"
+unneeded_field_pattern = "deny"
+unseparated_literal_suffix = "deny"
+unused_trait_names = "deny"
+unwrap_used = "deny"
+use_debug = "deny"
+wildcard_enum_match_arm = "deny"

@@ -1,24 +1,67 @@
+use std::path::Path;
+
 use crate::http::get_index_file_content;
 
 #[derive(Debug)]
 pub struct Response {
-    pub data: Vec<u8>,
     pub chunk_count: i32,
+    pub data: Vec<u8>,
 }
 
 impl Response {
-    pub fn res_404() -> Self {
-        let body = b"404 not found";
+    pub fn res_200(content: &str) -> Self {
         let response_header = format!(
-            "HTTP/1.1 404 Not Found\r\n\
+            "HTTP/1.1 200 OK\r\n\
             Content-Length: {}\r\n\
+            Cache-Control: no-store, no-cache, must-revalidate, max-age=0, s-maxage=0\r\n\
+            Cache-Control: post-check=0, pre-check=0\r\n\
+            Pragma: no-cache\r\n\
             Access-Control-Allow-Origin: *\r\n\
-            Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n\r\n",
-            body.len()
+            Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n\
+            Access-Control-Allow-Headers: Content-Encoding, Content-Type\r\n\r\n{}",
+            content.len(),
+            content
+        );
+        Self {
+            chunk_count: 0,
+            data: response_header.as_bytes().to_vec(),
+        }
+    }
+
+    pub fn res_200_fs(requested_file: &str) -> Self {
+        let file_name = if requested_file == "/" {
+            "/index.html"
+        } else {
+            requested_file
+        };
+        let content_type = match Path::new(file_name)
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .map(str::to_ascii_lowercase)
+            .as_deref()
+        {
+            Some("js") => "text/javascript",
+            Some("html") => "text/html",
+            Some("ico") => "image/vnd.microsoft.icon",
+            Some("css") => "text/css",
+            Some("svg") => "image/svg+xml",
+            _ => return Self::res_404(),
+        };
+        let Some(file_content) = get_index_file_content(file_name) else {
+            return Self::res_404();
+        };
+        let response_header = format!(
+            "HTTP/1.1 200 OK\r\n\
+                Content-Type: {content_type}\r\n\
+                Content-Length: {}\r\n\
+                Connection: keep-alive\r\n\
+                Access-Control-Allow-Origin: *\r\n\
+                Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n\r\n",
+            file_content.len()
         );
         let mut data = response_header.as_bytes().to_vec();
-        data.extend(body);
-        Response { data, chunk_count: 0 }
+        data.extend(file_content);
+        Self { chunk_count: 0, data }
     }
 
     pub fn res_200_garbage(chunk_count: i32) -> Self {
@@ -34,61 +77,10 @@ impl Response {
             Pragma: no-cache\r\n\
             Access-Control-Allow-Origin: *\r\n\
             Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n\r\n"
-            .to_string();
-        Response {
-            data: response_header.as_bytes().to_vec(),
+            .to_owned();
+        Self {
             chunk_count,
-        }
-    }
-
-    pub fn res_200_fs(file_name: &str) -> Self {
-        let file_name = if file_name == "/" { "/index.html" } else { file_name };
-        if let Some(file_content) = get_index_file_content(file_name) {
-            let content_type = match file_name {
-                i if i.ends_with(".js") => "text/javascript",
-                i if i.ends_with(".html") => "text/html",
-                i if i.ends_with(".ico") => "image/vnd.microsoft.icon",
-                i if i.ends_with(".css") => "text/css",
-                i if i.ends_with(".svg") => "image/svg+xml",
-                _ => "",
-            };
-            let data = match content_type {
-                i if i == "text/javascript" || i == "text/html" || i == "text/css" || i == "image/svg+xml" => {
-                    let content = String::from_utf8(file_content).unwrap();
-                    format!(
-                        "HTTP/1.1 200 OK\r\n\
-                            Content-Type: {}\r\n\
-                            Content-Length: {}\r\n\
-                            Connection: keep-alive\r\n\
-                            Access-Control-Allow-Origin: *\r\n\
-                            Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n\r\n{}",
-                        content_type,
-                        content.len(),
-                        content
-                    )
-                    .as_bytes()
-                    .to_vec()
-                }
-                "image/vnd.microsoft.icon" => {
-                    let response_header = format!(
-                        "HTTP/1.1 200 OK\r\n\
-                            Content-Type: {}\r\n\
-                            Content-Length: {}\r\n\
-                            Connection: keep-alive\r\n\
-                            Access-Control-Allow-Origin: *\r\n\
-                            Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n\r\n",
-                        content_type,
-                        file_content.len()
-                    );
-                    let mut data = response_header.as_bytes().to_vec();
-                    data.extend(file_content);
-                    data
-                }
-                _ => return Self::res_404(),
-            };
-            Response { data, chunk_count: 0 }
-        } else {
-            Self::res_404()
+            data: response_header.as_bytes().to_vec(),
         }
     }
 
@@ -107,26 +99,21 @@ impl Response {
         );
         let mut data = response_header.as_bytes().to_vec();
         data.extend(content.as_bytes());
-        Response { data, chunk_count: 0 }
+        Self { chunk_count: 0, data }
     }
 
-    pub fn res_200(content: &str) -> Self {
+    pub fn res_404() -> Self {
+        let body = b"404 not found";
         let response_header = format!(
-            "HTTP/1.1 200 OK\r\n\
+            "HTTP/1.1 404 Not Found\r\n\
             Content-Length: {}\r\n\
-            Cache-Control: no-store, no-cache, must-revalidate, max-age=0, s-maxage=0\r\n\
-            Cache-Control: post-check=0, pre-check=0\r\n\
-            Pragma: no-cache\r\n\
             Access-Control-Allow-Origin: *\r\n\
-            Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n\
-            Access-Control-Allow-Headers: Content-Encoding, Content-Type\r\n\r\n{}",
-            content.len(),
-            content
+            Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n\r\n",
+            body.len()
         );
-        Response {
-            data: response_header.as_bytes().to_vec(),
-            chunk_count: 0,
-        }
+        let mut data = response_header.as_bytes().to_vec();
+        data.extend(body);
+        Self { chunk_count: 0, data }
     }
 }
 
@@ -136,16 +123,16 @@ mod tests {
     use crate::config::{SERVER_CONFIG, ServerConfig};
 
     fn init_config() {
-        SERVER_CONFIG.get_or_init(|| ServerConfig {
-            bind_address: "0.0.0.0".to_string(),
-            listen_port: 8080,
-            worker_threads: serde_json::Value::from(1),
-            base_url: "test".to_string(),
-            ipinfo_api_key: "".to_string(),
-            assets_path: "".to_string(),
+        let _ = SERVER_CONFIG.get_or_init(|| ServerConfig {
+            assets_path: String::new(),
+            base_url: "test".to_owned(),
+            bind_address: "0.0.0.0".to_owned(),
             enable_tls: false,
-            tls_cert_file: "".to_string(),
-            tls_key_file: "".to_string(),
+            ipinfo_api_key: String::new(),
+            listen_port: 8080,
+            tls_cert_file: String::new(),
+            tls_key_file: String::new(),
+            worker_threads: serde_json::Value::from(1),
         });
     }
 

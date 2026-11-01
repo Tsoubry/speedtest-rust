@@ -1,22 +1,22 @@
 use clap::{Arg, Command, value_parser};
 
+const PKG_AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
+const PKG_DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
+const PKG_NAME: &str = env!("CARGO_PKG_NAME");
+const PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[derive(Debug)]
 pub struct Cmd {
-    pub server_config_path: Option<String>,
-    pub bind_address: Option<String>,
-    pub listen_port: Option<u16>,
-    pub base_url: Option<String>,
-    pub ipinfo_api_key: Option<String>,
     pub assets_path: Option<String>,
+    pub base_url: Option<String>,
+    pub bind_address: Option<String>,
     pub enable_tls: Option<bool>,
+    pub ipinfo_api_key: Option<String>,
+    pub listen_port: Option<u16>,
+    pub server_config_path: Option<String>,
     pub tls_cert_file: Option<String>,
     pub tls_key_file: Option<String>,
 }
-
-const PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
-const PKG_NAME: &str = env!("CARGO_PKG_NAME");
-const PKG_AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
-const PKG_DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
 
 impl Cmd {
     pub fn parse_args() -> Self {
@@ -76,23 +76,23 @@ impl Cmd {
                     .value_parser(value_parser!(String)),
             )
             .get_matches();
-        let server_config_path: Option<String> = args.get_one::<String>("server-config-path").map(|s| s.to_owned());
-        let bind_address: Option<String> = args.get_one::<String>("bind-address").map(|s| s.to_owned());
-        let listen_port: Option<u16> = args.get_one::<u16>("listen-port").map(|s| s.to_owned());
-        let base_url: Option<String> = args.get_one::<String>("base-url").map(|s| s.to_owned());
-        let ipinfo_api_key: Option<String> = args.get_one::<String>("ipinfo-api-key").map(|s| s.to_owned());
-        let assets_path: Option<String> = args.get_one::<String>("assets-path").map(|s| s.to_owned());
-        let enable_tls: Option<bool> = args.get_one::<bool>("enable-tls").map(|s| s.to_owned());
-        let tls_cert_file: Option<String> = args.get_one::<String>("tls-cert-file").map(|s| s.to_owned());
-        let tls_key_file: Option<String> = args.get_one::<String>("tls-key-file").map(|s| s.to_owned());
-        Cmd {
-            server_config_path,
-            bind_address,
-            listen_port,
-            base_url,
-            ipinfo_api_key,
+        let server_config_path: Option<String> = args.get_one::<String>("server-config-path").map(ToOwned::to_owned);
+        let bind_address: Option<String> = args.get_one::<String>("bind-address").map(ToOwned::to_owned);
+        let listen_port: Option<u16> = args.get_one::<u16>("listen-port").map(ToOwned::to_owned);
+        let base_url: Option<String> = args.get_one::<String>("base-url").map(ToOwned::to_owned);
+        let ipinfo_api_key: Option<String> = args.get_one::<String>("ipinfo-api-key").map(ToOwned::to_owned);
+        let assets_path: Option<String> = args.get_one::<String>("assets-path").map(ToOwned::to_owned);
+        let enable_tls: Option<bool> = args.get_one::<bool>("enable-tls").map(ToOwned::to_owned);
+        let tls_cert_file: Option<String> = args.get_one::<String>("tls-cert-file").map(ToOwned::to_owned);
+        let tls_key_file: Option<String> = args.get_one::<String>("tls-key-file").map(ToOwned::to_owned);
+        Self {
             assets_path,
+            base_url,
+            bind_address,
             enable_tls,
+            ipinfo_api_key,
+            listen_port,
+            server_config_path,
             tls_cert_file,
             tls_key_file,
         }
