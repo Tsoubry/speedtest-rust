@@ -53,8 +53,7 @@ pub async fn handle_socket<R, W, F>(
 ) where
     R: AsyncReadExt + Unpin,
     W: AsyncWriteExt + Unpin,
-    F: Send + Sync + Fn(Request) -> Pin<Box<dyn Future<Output = Response> + Send>>,
-{
+    F: Send + Sync + Fn(Request) -> Pin<Box<dyn Future<Output = Response> + Send>>, {
     'root_loop: loop {
         //read status line
         let parsed_status = {
@@ -144,8 +143,7 @@ pub async fn handle_socket<R, W, F>(
 
 pub async fn header_parser<R>(buf_reader: &mut BufReader<R>) -> CIHashMap<String>
 where
-    R: AsyncReadExt + Unpin,
-{
+    R: AsyncReadExt + Unpin, {
     let mut headers_out = CIHashMap::new();
     'header_loop: loop {
         if let Ok(Some(header_line)) = buf_reader.lines().next_line().await {

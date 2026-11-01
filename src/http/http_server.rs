@@ -25,8 +25,7 @@ impl HttpServer {
         buf_writer: &mut BufWriter<W>,
     ) where
         R: AsyncReadExt + Unpin,
-        W: AsyncWriteExt + Unpin,
-    {
+        W: AsyncWriteExt + Unpin, {
         handle_socket(remote_addr, buf_reader, buf_writer, |request| {
             Box::pin(async move {
                 let matched_route = ROUTES.get().and_then(|routes| routes.get(request.path.trim()));
