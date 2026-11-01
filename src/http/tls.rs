@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::{BufReader, Error, ErrorKind},
+    io::{BufReader, Error, ErrorKind, Result as IoResult},
     sync::Arc,
 };
 
@@ -16,8 +16,25 @@ use tokio_rustls::{
     },
 };
 
-/** TLS Configuration */
-pub fn setup_tls_acceptor(cert_path: &str, key_path: &str) -> std::io::Result<TlsAcceptor> {
+fn load_certs(path: &str) -> IoResult<Vec<CertificateDer<'static>>> {
+    certs(&mut BufReader::new(open_file_buf(
+        path,
+        "Failed to load tls cert file",
+    )?))
+    .collect()
+}
+
+fn load_key(path: &str) -> IoResult<PrivateKeyDer<'static>> {
+    private_key(&mut BufReader::new(open_file_buf(path, "Failed to load tls key file")?))?
+        .ok_or_else(|| Error::other("Failed to load tls key file"))
+}
+
+fn open_file_buf(path: &str, err_msg: &str) -> IoResult<File> {
+    File::open(path).map_err(|_| Error::other(err_msg.to_owned()))
+}
+
+/// TLS Configuration.
+pub fn setup_tls_acceptor(cert_path: &str, key_path: &str) -> IoResult<TlsAcceptor> {
     let certs = load_certs(cert_path)?;
     let key = load_key(key_path)?;
     let config = ServerConfig::builder()
@@ -29,35 +46,13 @@ pub fn setup_tls_acceptor(cert_path: &str, key_path: &str) -> std::io::Result<Tl
     Ok(acceptor)
 }
 
-pub async fn setup_tls_connector(domain: String, tcp_stream: TcpStream) -> TlsStream<TcpStream> {
+pub async fn setup_tls_connector(domain: String, tcp_stream: TcpStream) -> IoResult<TlsStream<TcpStream>> {
     let mut root_cert_store = RootCertStore::empty();
     root_cert_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
     let config = ClientConfig::builder()
         .with_root_certificates(root_cert_store)
         .with_no_client_auth();
-    let dns_name = ServerName::try_from(domain).unwrap();
+    let dns_name = ServerName::try_from(domain).map_err(|err| Error::new(ErrorKind::InvalidInput, err))?;
     let connector = TlsConnector::from(Arc::new(config));
-    connector.connect(dns_name, tcp_stream).await.unwrap()
-}
-
-fn open_file_buf(path: &str, err_msg: &str) -> std::io::Result<File> {
-    if let Ok(file) = File::open(path) {
-        Ok(file)
-    } else {
-        Err(Error::other(err_msg))
-    }
-}
-
-fn load_certs(path: &str) -> std::io::Result<Vec<CertificateDer<'static>>> {
-    certs(&mut BufReader::new(open_file_buf(
-        path,
-        "Failed to load tls cert file",
-    )?))
-    .collect()
-}
-
-fn load_key(path: &str) -> std::io::Result<PrivateKeyDer<'static>> {
-    private_key(&mut BufReader::new(open_file_buf(path, "Failed to load tls key file")?))
-        .unwrap()
-        .ok_or(Error::other("Failed to load tls key file".to_string()))
+    connector.connect(dns_name, tcp_stream).await
 }
