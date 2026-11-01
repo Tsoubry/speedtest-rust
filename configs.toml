@@ -1,7 +1,5 @@
-# bind socket adress
 bind_address="::"
-# socket listent port, default is 8080
-listen_port=8443
+listen_port=8080
 
 # you can specify the number of worker threads. default is 1
 # auto: number of cpu cores, or more than 0 as desired
@@ -11,32 +9,11 @@ worker_threads=1
 # base api url /{base_url}/routes
 base_url="backend"
 
-# ipinfo.io API key, If the api-key works, the priority is with the api, if not with the offline database
+# ipinfo.io API key, used to show ISP information next to the IP address (optional)
 ipinfo_api_key=""
 
 # set directory of speedtest web front to server load on `/`. If it is empty, default web will be returned
 assets_path="./assets" # Write without suffix separator
-
-# password for logging into statistics page, fill this to enable stats page
-stats_password=""
-
-# redact IP addresses
-redact_ip_addresses=false
-
-# set telemetry result image theme : light, dark
-# default is light
-result_image_theme="light"
-
-# database config for : mysql, postgres, sqlite, memory, or disable by write none
-# after restarting the service, the in-memory database is reset
-# if none is specified, no telemetry/stats will be recorded, and no result JPG will be generated
-database_type="sqlite"
-database_hostname="localhost"
-database_name="speedtest_db"
-database_username=""
-database_password=""
-# if you use `sqlite` as database, set database_file to database file location
-database_file="speedtest.db"
 
 # enable and use TLS option; if enable it, you need to prepare certificates and private keys
 enable_tls=false

@@ -22,38 +22,6 @@ impl Response {
         Response {data,chunk_count:0}
     }
 
-    pub fn res_400 () -> Self {
-        let body = b"400 bad request";
-        let response_header = format!(
-            "HTTP/1.1 400 Bad Request\r\n\
-            Content-Length: {}\r\n\
-            Access-Control-Allow-Origin: *\r\n\
-            Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n\r\n",
-            body.len()
-        );
-        let mut data = response_header.as_bytes().to_vec();
-        data.extend(body);
-        Response {data,chunk_count:0}
-    }
-
-    pub fn res_200_img (img : &[u8]) -> Self {
-        let response_header = format!(
-            "HTTP/1.1 200 OK\r\n\
-            Content-Length: {}\r\n\
-            Content-Type: image/jpeg\r\n\
-            Cache-Control: no-store, no-cache, must-revalidate, max-age=0, s-maxage=0\r\n\
-            Cache-Control: post-check=0, pre-check=0\r\n\
-            Pragma: no-cache\r\n\
-            Access-Control-Allow-Origin: *\r\n\
-            Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n\
-            Access-Control-Allow-Headers: Content-Encoding, Content-Type\r\n\r\n",
-            img.len()
-        );
-        let mut data = response_header.as_bytes().to_vec();
-        data.extend(img);
-        Response {data,chunk_count:0}
-    }
-
     pub fn res_200_garbage (chunk_count : i32) -> Self {
         let response_header = "HTTP/1.1 200 OK\r\n\
             Content-Description: File Transfer\r\n\
@@ -173,80 +141,6 @@ impl Response {
         Response {data : response_header.as_bytes().to_vec(),chunk_count : 0}
     }
 
-    pub fn res_500() -> Self {
-        let body = b"Internal Server Error";
-        let response_header = format!(
-            "HTTP/1.1 500 Internal Server Error\r\n\
-            Content-Length: {}\r\n\
-            Access-Control-Allow-Origin: *\r\n\
-            Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n\r\n",
-            body.len()
-        );
-        let mut data = response_header.as_bytes().to_vec();
-        data.extend(body);
-        Response {data,chunk_count:0}
-    }
-
-    /*stats responses*/
-    pub fn res_temporary_redirect_cookie(cookie_data : &str,location : &str) -> Self {
-        let response_header = format!(
-            "HTTP/1.1 307 Temporary Redirect\r\n\
-            Content-Type: text/html; charset=utf-8\r\n\
-            Set-Cookie: {}\r\n\
-            Location: {}\r\n\
-            Content-Length: 0\r\n\
-            Cache-Control: no-store, no-cache, must-revalidate, max-age=0, s-maxage=0\r\n\
-            Cache-Control: post-check=0, pre-check=0\r\n\
-            Pragma: no-cache\r\n\
-            Access-Control-Allow-Credentials: true\r\n\
-            Access-Control-Allow-Origin: *\r\n\
-            Access-Control-Allow-Headers: Content-Encoding, Content-Type, Authorization\r\n\
-            Access-Control-Allow-Methods: GET, POST, OPTIONS, HEAD\r\n\r\n",
-            cookie_data,
-            location
-        );
-        let data = response_header.as_bytes().to_vec();
-        Response {data,chunk_count:0}
-    }
-
-    pub fn res_200_html(content : &str) -> Self {
-        let response_header = format!(
-            "HTTP/1.1 200 OK\r\n\
-            Content-Length: {}\r\n\
-            Content-Type: text/html; charset=utf-8\r\n\
-            Cache-Control: no-store, no-cache, must-revalidate, max-age=0, s-maxage=0\r\n\
-            Cache-Control: post-check=0, pre-check=0\r\n\
-            Pragma: no-cache\r\n\
-            Access-Control-Allow-Credentials: true\r\n\
-            Access-Control-Allow-Origin: *\r\n\
-            Access-Control-Allow-Headers: Content-Encoding, Content-Type, Authorization\r\n\
-            Access-Control-Allow-Methods: GET, POST, OPTIONS, HEAD\r\n\r\n",
-            content.len()
-        );
-        let mut data = response_header.as_bytes().to_vec();
-        data.extend(content.as_bytes());
-        Response {data,chunk_count:0}
-    }
-
-    pub fn res_403_html(content : &str) -> Self {
-        let response_header = format!(
-            "HTTP/1.1 403 Forbidden\r\n\
-            Content-Length: {}\r\n\
-            Content-Type: text/html; charset=utf-8\r\n\
-            Cache-Control: no-store, no-cache, must-revalidate, max-age=0, s-maxage=0\r\n\
-            Cache-Control: post-check=0, pre-check=0\r\n\
-            Pragma: no-cache\r\n\
-            Access-Control-Allow-Credentials: true\r\n\
-            Access-Control-Allow-Origin: *\r\n\
-            Access-Control-Allow-Headers: Content-Encoding, Content-Type, Authorization\r\n\
-            Access-Control-Allow-Methods: GET, POST, OPTIONS, HEAD\r\n\r\n",
-            content.len()
-        );
-        let mut data = response_header.as_bytes().to_vec();
-        data.extend(content.as_bytes());
-        Response {data,chunk_count:0}
-    }
-
 }
 
 #[cfg(test)]
@@ -261,16 +155,7 @@ mod tests {
             worker_threads: serde_json::Value::from(1),
             base_url: "test".to_string(),
             ipinfo_api_key: "".to_string(),
-            stats_password: "".to_string(),
-            redact_ip_addresses: false,
-            result_image_theme: "light".to_string(),
             assets_path: "".to_string(),
-            database_type: "none".to_string(),
-            database_hostname: None,
-            database_name: None,
-            database_username: None,
-            database_password: None,
-            database_file: None,
             enable_tls: false,
             tls_cert_file: "".to_string(),
             tls_key_file: "".to_string(),

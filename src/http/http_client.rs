@@ -1,19 +1,13 @@
-use std::fs::File;
-use std::io::{Error};
+use std::io::Error;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use serde_json::Value;
-use tokio::io::{split, AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, BufReader, ReadBuf};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, ReadBuf};
 use tokio::net::TcpStream;
 use tokio_rustls::client::TlsStream;
-use std::io::Write;
-use indicatif::{ProgressBar, ProgressStyle};
-use crate::http::request::header_parser;
 use crate::http::tls::setup_tls_connector;
 
 pub struct HttpClient {
-    pub host : String,
-    pub path : String,
     pub stream : ClientStream
 }
 
@@ -64,11 +58,7 @@ impl HttpClient {
         } else {
             ClientStream::Tcp(tcp_stream)
         };
-        Ok(HttpClient {
-            host : pared_url.1,
-            path : pared_url.3,
-            stream
-        })
+        Ok(HttpClient { stream })
     }
 
     pub async fn send_request_json(&mut self,packet : &[u8]) -> std::io::Result<Option<Value>> {
@@ -97,60 +87,11 @@ impl HttpClient {
         }
     }
 
-    pub async fn download_file(&mut self,file_name : &str) {
-        let request = format!("GET /{} HTTP/1.1\r\n\
-        accept-encoding: gzip, deflate, br, zstd\r\n\
-        Host: {}\r\n\r\n",self.path,self.host);
-        self.stream.write_all(request.as_bytes()).await.unwrap();
-        let (socket_r, _) = split(&mut self.stream);
-        let mut buf_reader = BufReader::with_capacity(8 * 1024, socket_r);
-        Self::download_stream(&mut buf_reader,file_name).await
-    }
-
-    async fn download_stream<R>(buf_reader: &mut BufReader<R>,file_name : &str)
-    where
-        R : AsyncReadExt + Unpin
-    {
-        //read status line
-        if let Ok(Some(status_line)) = buf_reader.lines().next_line().await {
-            if status_line.to_lowercase().contains("200 ok") {
-                //headers
-                let parsed_headers = header_parser(buf_reader).await;
-                //read body
-                let body_len = parsed_headers.get("Content-Length");
-                if let Some(body_len) = body_len {
-                    let body_len = body_len.parse::<usize>().unwrap();
-                    let pb = ProgressBar::new(body_len as u64);
-                    pb.set_style(ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})")
-                        .unwrap()
-                        .progress_chars("#>-"));
-                    let mut file = File::create(file_name).unwrap();
-                    let mut buffer = [0; 1024];
-                    let mut read_buff = 0;
-                    'body_loop:loop {
-                        let n = buf_reader.read(&mut buffer).await.unwrap();
-                        read_buff += n;
-                        pb.set_position(read_buff as u64);
-                        file.write_all(&buffer[..n]).unwrap();
-                        if read_buff >= body_len {
-                            break 'body_loop;
-                        }
-                    }
-                    pb.finish_with_message("Download completed");
-                }
-            }
-        }
-    }
-
-    fn parse_url(url: &str) -> std::io::Result<(String,String,i32,String)> {
+    fn parse_url(url: &str) -> std::io::Result<(String,String,i32)> {
         if let Some((scheme, rest)) = url.split_once("://") {
-            let (host, path) = if rest.contains('/') {
-                rest.split_once('/').unwrap()
-            } else {
-                (rest,"")
-            };
+            let host = rest.split_once('/').map_or(rest, |(host, _)| host);
             let port = if scheme == "https" { 443 } else { 80 };
-            Ok((scheme.to_string(),host.to_string(),port,path.to_string()))
+            Ok((scheme.to_string(),host.to_string(),port))
         } else {
             Err(Error::other("Error parsing input url"))
         }

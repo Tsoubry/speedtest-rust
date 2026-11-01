@@ -4,8 +4,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use crate::config::SERVER_CONFIG;
 use crate::http::http_client::HttpClient;
-use crate::ip::mmdb::mmdb_reader::MMDBReader;
-use crate::ip::mmdb::mmdb_record::MMDBResult;
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize)]
@@ -74,21 +72,9 @@ impl IPInfo {
             return json_string.to_string()
         }
 
-        //get isp info from db
-        if let Some(isp_info) = Self::get_isp_info_from_db(raw_ip) {
-            ip_info_model.processedString = format!("{} - {}, {}",raw_ip,isp_info.as_name,isp_info.country_name);
-            ip_info_model.rawIspInfo.ip = raw_ip.to_string();
-            ip_info_model.rawIspInfo.country = isp_info.country;
-            ip_info_model.rawIspInfo.organization = format!("{} {}",isp_info.asn,isp_info.as_name);
-            let json_string = json!(ip_info_model);
-            json_string.to_string()
-        } else {
-
-            //failed to get isp and send only ip
-            ip_info_model.processedString = raw_ip.to_string();
-            let json_string = json!(ip_info_model);
-            json_string.to_string()
-        }
+        //failed to get isp, send only ip
+        ip_info_model.processedString = raw_ip.to_string();
+        json!(ip_info_model).to_string()
     }
 
     fn get_local_or_private_info (ip : &str) -> Option<String> {
@@ -110,14 +96,6 @@ impl IPInfo {
         if ip.starts_with("169.254.") {
             return Some("link-local IPv4 access".to_string())
         }
-        None
-    }
-
-    fn get_isp_info_from_db(ip : &str) -> Option<MMDBResult> {
-        if let Some(mut ipdb_reader) = MMDBReader::from("country_asn.mmdb") {
-            return ipdb_reader.lookup(ip)
-        }
-        warn!("Unable to open country asn database file");
         None
     }
 
