@@ -23,7 +23,7 @@ serde_json = "1.0.154"
 serde = { version = "1.0.229", features = ["derive"] }
 #conf
 clap = { version = "4.6.7",features = ["std","color","help","usage"],default-features = false }
-toml = "1.1.8"
+toml = "1.2.0"
 chrono = { version = "0.4.45", default-features = false, features = ["clock","std"] }
 #logging
 env_logger = { version = "0.11.11",default-features = false,features = ["auto-color","humantime"] }
@@ -31,6 +31,7 @@ log = "0.4.35"
 #assets
 include_dir = "0.7.4"
 case_insensitive_hashmap = "1.0.1"
+rand = "0.10.3"
 
 [profile.release]
 codegen-units = 1

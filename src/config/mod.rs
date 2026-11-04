@@ -9,6 +9,7 @@ use std::{
 use chrono::Local;
 use include_dir::{Dir, include_dir};
 use log::{LevelFilter, info, trace};
+use rand::RngExt as _;
 use serde::Deserialize;
 use serde_json::Value;
 use tokio::runtime::{Builder, Runtime};
@@ -187,7 +188,8 @@ fn initialize(mut config: ServerConfig, cmd: Cmd) {
     let chunk_len = format!("{CHUNK_SIZE:X}\r\n");
     let mut garbage = Vec::new();
     garbage.extend(chunk_len.as_bytes());
-    garbage.extend(vec![0; CHUNK_SIZE]);
+    let mut rng = rand::rng();
+    garbage.extend((0..CHUNK_SIZE).map(|_| rng.random::<u8>()));
     garbage.extend(b"\r\n");
     let _ = GARBAGE_DATA.get_or_init(|| garbage);
 }
